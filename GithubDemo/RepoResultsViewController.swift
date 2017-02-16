@@ -10,8 +10,10 @@ import UIKit
 import MBProgressHUD
 
 // Main ViewController
-class RepoResultsViewController: UIViewController {
+class RepoResultsViewController: UIViewController, UITableViewDataSource {
 
+    @IBOutlet weak var tableView: UITableView!
+    
     var searchBar: UISearchBar!
     var searchSettings = GithubRepoSearchSettings()
 
@@ -20,6 +22,10 @@ class RepoResultsViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        tableView.dataSource = self
+        tableView.estimatedRowHeight = 144
+        tableView.rowHeight = UITableViewAutomaticDimension
+        
         // Initialize the UISearchBar
         searchBar = UISearchBar()
         searchBar.delegate = self
@@ -40,6 +46,9 @@ class RepoResultsViewController: UIViewController {
         // Perform request to GitHub API to get the list of repositories
         GithubRepo.fetchRepos(searchSettings, successCallback: { (newRepos) -> Void in
 
+            self.repos = newRepos
+            self.tableView.reloadData()
+            
             // Print the returned repositories to the output window
             for repo in newRepos {
                 print(repo)
@@ -47,8 +56,28 @@ class RepoResultsViewController: UIViewController {
 
             MBProgressHUD.hide(for: self.view, animated: true)
             }, error: { (error) -> Void in
-                print(error)
+                print(error ?? "Error")
         })
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        
+        if let cell = tableView.dequeueReusableCell(withIdentifier: "RepoTableCell", for: indexPath) as? RepoTableCell {
+            let repo = repos[indexPath.row]
+            cell.repoTitleLabel.text = repo.name
+            cell.starCountLabel.text = "\(repo.stars!)"
+            cell.forkCountLabel.text = "\(repo.forks!)"
+            cell.authorLabel.text = repo.ownerHandle
+            cell.authorProfileImageView.setImageWith(URL(string: repo.ownerAvatarURL!)!)
+            cell.repoDescriptionLabel.text = repo.repoDescription
+            return cell
+        }
+        
+        return UITableViewCell()
+    }
+    
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        return repos?.count ?? 0
     }
 }
 
